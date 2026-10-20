@@ -1,0 +1,15 @@
+com.miui.tv.analytics
+com.google.android.feedback
+com.google.android.tv.bugreportsender
+tv.alphonso.alphonso_eula
+com.mitv.tvhome.atv
+com.mitv.tvhome.michannel
+com.xm.webcontent
+com.google.android.tvrecommendations
+android.autoinstalls.config.xiaomi.mibox3
+android.autoinstalls.config.xioami.mibox3
+com.dazn
+com.nousguide.android.rbtv
+com.google.android.apps.tachyon
+com.google.android.play.games
+com.tcl.browser

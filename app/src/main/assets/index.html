@@ -1,0 +1,606 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  @font-face{font-family:'Inter';src:url(fonts/inter-var.woff2) format('woff2');
+    font-weight:100 900;font-style:normal;font-display:swap}
+  *:focus{outline:none}
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{width:100%;height:100%;overflow:hidden;background:#04050a;color:#fff;
+    font-family:'Inter','Roboto',sans-serif;font-feature-settings:'ss01','cv11'}
+
+  #wall{position:fixed;inset:0;background:#04050a url(wallpaper.jpg) center/cover no-repeat;
+    transition:opacity .5s}
+  #scrim{position:fixed;inset:0;
+    background:
+      linear-gradient(270deg, rgba(4,5,10,.95) 0%, rgba(4,5,10,.80) 30%, rgba(4,5,10,.32) 60%, rgba(4,5,10,.15) 100%),
+      linear-gradient(180deg, rgba(4,5,10,.45) 0%, transparent 26%, transparent 72%, rgba(4,5,10,.70) 100%)}
+
+  .stage{position:fixed;inset:0;display:flex;align-items:center;justify-content:flex-end;
+    padding-right:7vw;transition:padding .25s ease}
+  .stage.pos-left{justify-content:flex-start;padding-left:7vw;padding-right:0}
+  .stage.pos-center{justify-content:center;padding-left:0;padding-right:0}
+  .stage.pos-right{justify-content:flex-end;padding-left:0;padding-right:7vw}
+  .left.al-left{align-items:flex-start;text-align:left}
+  .left.al-center{align-items:center;text-align:center}
+  .left.al-right{align-items:flex-end;text-align:right}
+  .cards.pos-left{justify-content:flex-start}
+  .cards.pos-center{justify-content:center}
+  .cards.pos-right{justify-content:flex-end}
+  .left{display:flex;flex-direction:column;align-items:flex-end;text-align:right}
+
+  .clock{font-weight:200;font-size:13vw;line-height:.84;letter-spacing:-.045em;
+    font-variant-numeric:tabular-nums;
+    text-shadow:0 1vh 8vh rgba(0,0,0,.6)}
+  .clock.s{font-size:10vw}
+  .clock.l{font-size:16vw}
+  .date{margin-top:2vh;font-size:1.25vw;letter-spacing:.42em;text-transform:uppercase;
+    color:rgba(255,255,255,.58);font-weight:450;padding-right:.42em;
+    text-shadow:0 1vh 3vh rgba(0,0,0,.65)}
+  .date.hidden{display:none}
+
+  .cards{display:flex;gap:2.2vw;margin-top:8vh;justify-content:flex-end}
+  .card{display:flex;align-items:center;gap:1.9vw;padding:2.6vh 2.8vw;border-radius:2.8vh;
+    background:linear-gradient(155deg, rgba(255,255,255,.13), rgba(255,255,255,.045));
+    border:1px solid rgba(255,255,255,.12);
+    box-shadow:0 2.4vh 7vh rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.14);
+    transition:transform .2s cubic-bezier(.2,.8,.2,1), background .2s, box-shadow .2s, border-color .2s}
+  .card.focused{transform:scale(1.08);
+    background:linear-gradient(155deg, rgba(255,255,255,.30), rgba(255,255,255,.10));
+    border:2px solid rgba(255,255,255,.55);
+    box-shadow:0 3.4vh 10vh rgba(0,0,0,.65), 0 0 8vh rgba(150,180,255,.32), inset 0 1px 0 rgba(255,255,255,.45)}
+  .stack{display:flex;align-items:center}
+  .stack img{width:5vh;width:5.2vh;height:5.2vh;border-radius:1.6vh;box-shadow:0 1.2vh 3vh rgba(0,0,0,.65);display:block}
+  .stack img+img{margin-left:-2vh}
+  .name{font-size:1.1vw;letter-spacing:.34em;text-transform:uppercase;
+    color:rgba(255,255,255,.94);font-weight:550;padding-right:.34em}
+
+  .gear{position:fixed;top:4.5vh;right:4.5vw;width:6.4vh;height:6.4vh;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);
+    color:rgba(255,255,255,.6);font-size:2.5vh;transition:all .18s ease}
+  .gear.focused{background:rgba(255,255,255,.22);color:#fff;transform:scale(1.12);
+    border-color:rgba(255,255,255,.4);box-shadow:0 0 3vh rgba(160,190,255,.22)}
+
+  #overlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;
+    background:rgba(2,3,6,.86)}
+  #overlay.on{display:flex;animation:fade .16s ease-out}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  .panel{width:70vw;max-height:88vh;overflow-y:auto;overflow-x:hidden;
+    scrollbar-width:none;padding:3.4vh 3.4vw 2.6vh;border-radius:3vh;
+    background:linear-gradient(165deg, rgba(26,30,42,.98), rgba(9,11,17,.99));
+    border:1px solid rgba(255,255,255,.09);
+    box-shadow:0 6vh 16vh rgba(0,0,0,.8), inset 0 1px 0 rgba(255,255,255,.07)}
+  .ptitle{font-size:1.4vw;letter-spacing:.4em;text-transform:uppercase;
+    color:rgba(255,255,255,.55);margin-bottom:3vh}
+
+  /* app grid inside folders */
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1.2vw}
+  .app{display:flex;flex-direction:column;align-items:center;gap:1.5vh;
+    padding:1.6vh .5vw;border-radius:2vh;transition:transform .16s ease, background .16s ease}
+  .app img{width:7.2vh;height:7.2vh;border-radius:1.8vh;box-shadow:0 1.4vh 3vh rgba(0,0,0,.5)}
+  .app span{font-size:.95vw;color:rgba(255,255,255,.8);text-align:center;max-width:11vw;line-height:1.35}
+  .app.focused{background:rgba(255,255,255,.13);transform:scale(1.07)}
+  .app.focused span{color:#fff}
+
+  /* settings rows */
+  .rows{display:flex;flex-direction:column}
+  .row{display:flex;align-items:center;justify-content:space-between;
+    padding:1.45vh 1.6vw;border-radius:1.6vh;border-left:3px solid transparent;
+    transition:background .16s ease, border-color .16s ease}
+  .row .lab{font-size:1.15vw;color:rgba(255,255,255,.9);letter-spacing:.04em}
+  .row .val{font-size:1.05vw;letter-spacing:.28em;color:rgba(255,255,255,.55);
+    display:flex;align-items:center;gap:.9vw}
+  .row .val .arw{opacity:.45;font-size:1.2vw}
+  .row.focused{background:rgba(255,255,255,.10);border-left-color:rgba(255,255,255,.75)}
+  .row.focused .val{color:#fff}
+  .row.focused .val .arw{opacity:.9}
+  .sect{margin:1.8vh 0 .4vh;font-size:.82vw;letter-spacing:.34em;text-transform:uppercase;
+    color:rgba(255,255,255,.34);padding-left:.4vw}
+  .sect:first-child{margin-top:0}
+  .hint{margin-top:2.6vh;font-size:.85vw;letter-spacing:.22em;color:rgba(255,255,255,.3);
+    text-transform:uppercase;text-align:center}
+</style>
+</head>
+<body>
+<div id="wall"></div>
+<div id="scrim"></div>
+
+<div class="stage">
+  <div class="left">
+    <div class="clock" id="clock">--:--</div>
+    <div class="date" id="date"></div>
+    <div class="cards" id="cards"></div>
+  </div>
+</div>
+
+<div class="gear" id="gear">&#9881;</div>
+
+<div id="overlay">
+  <div class="panel">
+    <div class="ptitle" id="ptitle"></div>
+    <div class="grid" id="grid"></div>
+    <div class="rows" id="rows"></div>
+    <div class="hint" id="hint"></div>
+  </div>
+</div>
+
+<script>
+window.onerror = function (m, s, l) { try { console.log('JSERR ' + m + ' @' + l); } catch (e) {} };
+(function () {
+  var cardsEl = document.getElementById('cards');
+  var gearEl = document.getElementById('gear');
+  var overlay = document.getElementById('overlay');
+  var gridEl = document.getElementById('grid');
+  var rowsEl = document.getElementById('rows');
+  var ptitle = document.getElementById('ptitle');
+  var hint = document.getElementById('hint');
+  var wall = document.getElementById('wall');
+
+  var mode = 'home';
+  var focusables = [];
+  var fi = 0;
+  var overlayItems = [];
+  var oi = 0;
+  var rowDefs = [];
+  var ri = 0;
+  var groups = [];
+  var moveMode = false;
+  var moveDest = 0;
+  var movePkg = null;
+
+  var cfg = { h24: true, showDate: true, size: 'm', wallpaper: true, clockPos: 'right', appsPos: 'right' };
+  try {
+    var saved = JSON.parse(localStorage.getItem('valenhome.cfg') || 'null');
+    if (saved) for (var k in saved) if (cfg.hasOwnProperty(k)) cfg[k] = saved[k];
+  } catch (e) {}
+  function saveCfg() { try { localStorage.setItem('valenhome.cfg', JSON.stringify(cfg)); } catch (e) {} }
+
+  var moves = {};
+  try { moves = JSON.parse(localStorage.getItem('valenhome.moves') || '{}') || {}; } catch (e) {}
+  function saveMoves() { try { localStorage.setItem('valenhome.moves', JSON.stringify(moves)); } catch (e) {} }
+
+  function applyCfg() {
+    document.getElementById('clock').className = 'clock' + (cfg.size === 's' ? ' s' : (cfg.size === 'l' ? ' l' : ''));
+    document.getElementById('date').className = 'date' + (cfg.showDate ? '' : ' hidden');
+    wall.style.opacity = cfg.wallpaper ? '1' : '0';
+    var st = document.querySelector('.stage');
+    var lf = document.querySelector('.left');
+    var cd = document.getElementById('cards');
+    st.className = 'stage pos-' + (cfg.clockPos || 'right');
+    lf.className = 'left al-' + (cfg.clockPos || 'right');
+    cd.className = 'cards pos-' + (cfg.appsPos || 'right');
+    tick(true);
+  }
+
+  var lastClock = '', lastDate = '';
+  function tick(force) {
+    var d = new Date(), h = d.getHours(), mm = ('0' + d.getMinutes()).slice(-2), t;
+    if (cfg.h24) t = ('0' + h).slice(-2) + ':' + mm;
+    else { var h12 = h % 12; if (h12 === 0) h12 = 12; t = h12 + ':' + mm; }
+    if (t !== lastClock || force) {
+      lastClock = t;
+      document.getElementById('clock').textContent = t;
+    }
+    var ds = d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' }).replace(/,/g, '');
+    ds = ds.charAt(0).toUpperCase() + ds.slice(1);
+    if (ds !== lastDate || force) {
+      lastDate = ds;
+      document.getElementById('date').textContent = ds;
+    }
+  }
+
+  function setFocus(i) {
+    if (!focusables.length) return;
+    focusables.forEach(function (el) { el.classList.remove('focused'); });
+    fi = (i + focusables.length) % focusables.length;
+    focusables[fi].classList.add('focused');
+  }
+
+  var CAT = { 0: 'JUEGOS', 1: 'MÚSICA', 2: 'VER', 3: 'FOTOS', 4: 'SOCIAL', 5: 'NOTICIAS', 6: 'MAPAS', 7: 'APPS', 8: 'ACCESIBILIDAD' };
+
+  function guessCat(a) {
+    if (typeof a.cat === 'number' && CAT[a.cat]) return CAT[a.cat];
+    var p = (a.pkg + ' ' + (a.label || '')).toLowerCase();
+    if (/netflix|hbo|disney|prime|youtube|filmin|mitele|mediaset|atres|rtve|dazn|movistar|crunchyroll|plex|vlc|kodi|stremio|stream|video|player|tv\b/.test(p)) return 'VER';
+    if (/spotify|music|radio|audio|podcast|sound/.test(p)) return 'MÚSICA';
+    if (/game|juego|juegos/.test(p)) return 'JUEGOS';
+    return 'APPS';
+  }
+
+  function addCard(name, items) {
+    var card = document.createElement('div');
+    card.className = 'card';
+    var stack = document.createElement('div');
+    stack.className = 'stack';
+    var shown = 0;
+    items.forEach(function (a) {
+      if (shown >= 3 || !a.icon) return;
+      var img = document.createElement('img');
+      img.src = a.icon;
+      stack.appendChild(img);
+      shown++;
+    });
+    var nm = document.createElement('div');
+    nm.className = 'name';
+    nm.textContent = name;
+    card.appendChild(stack);
+    card.appendChild(nm);
+    card.addEventListener('click', function () { openList(name, items); });
+    cardsEl.appendChild(card);
+    focusables.push(card);
+  }
+
+  function buildFolders() {
+    var prev = fi;
+    var sig = '';
+    var changed = false;
+    cardsEl.innerHTML = '';
+    focusables = [];
+    var index = {};
+    try {
+      JSON.parse(valen.all()).forEach(function (a) { index[a.pkg] = a; sig += a.cmp + '|'; });
+    } catch (e) {}
+    if (sig === window.__sig && cardsEl.childElementCount > 0) return;
+    window.__sig = sig;
+
+    var order = [];
+    var byName = {};
+    function bucket(n) { if (!byName[n]) { byName[n] = []; order.push(n); } return byName[n]; }
+
+    var data = {};
+    try { data = JSON.parse(valen.folders()); } catch (e) {}
+    (data.folders || []).forEach(function (f) {
+      var b = bucket(f.name);
+      (f.apps || []).forEach(function (p) {
+        if (!index[p]) return;
+        if (moves[p] && moves[p] !== f.name) return;
+        b.push(index[p]);
+        index[p]._used = true;
+      });
+    });
+
+    Object.keys(index).forEach(function (p) {
+      var a = index[p];
+      if (a._used || p === 'com.valen.home' || p === 'com.gathin.tvhome') return;
+      bucket(moves[p] || guessCat(a)).push(a);
+    });
+
+    Object.keys(index).forEach(function (p) { index[p]._used = false; });
+
+    groups = [];
+    order.forEach(function (n) {
+      var items = byName[n].sort(function (a, b) { return (a.label || '').localeCompare(b.label || ''); });
+      if (!items.length) return;
+      groups.push(n);
+      addCard(n, items);
+    });
+
+    focusables.push(gearEl);
+    if (mode === 'home') setFocus(prev || 0);
+  }
+
+  function showOverlay(title) {
+    ptitle.textContent = title;
+    gridEl.innerHTML = '';
+    rowsEl.innerHTML = '';
+    overlay.classList.add('on');
+    valen.setOverlay(true);
+  }
+
+  function openList(name, items) {
+    mode = 'folder';
+    moveStage = null;
+    showOverlay(name);
+    gridEl.style.display = 'grid';
+    rowsEl.style.display = 'none';
+    hint.textContent = 'OK abre · MOVER cambia de carpeta · ATRÁS vuelve';
+    overlayItems = [];
+    oi = 0;
+
+    items.forEach(function (a) {
+      if (!a || !a.icon) return;
+      var el = document.createElement('div');
+      el.className = 'app';
+      var img = document.createElement('img');
+      img.src = a.icon;
+      var sp = document.createElement('span');
+      sp.textContent = a.label;
+      el.appendChild(img);
+      el.appendChild(sp);
+      el.addEventListener('click', function () { if (!moveMode) launch(a.pkg); });
+      gridEl.appendChild(el);
+      overlayItems.push({ el: el, pkg: a.pkg, label: a.label });
+    });
+    if (!overlayItems.length) return;
+
+    var mv = document.createElement('div');
+    mv.className = 'app';
+    var mvi = document.createElement('div');
+    mvi.style.cssText = 'width:7.2vh;height:7.2vh;border-radius:1.8vh;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.10);font-size:3vh;color:rgba(255,255,255,.7)';
+    mvi.textContent = '\u21C4';
+    var mvs = document.createElement('span');
+    mvs.textContent = 'MOVER';
+    mv.appendChild(mvi); mv.appendChild(mvs);
+    mv.addEventListener('click', function () { if (!moveStage) enterMove(); });
+    gridEl.appendChild(mv);
+    overlayItems.push({ el: mv, isMove: true, pkg: null, label: 'MOVER' });
+
+    curFolder = name;
+    overlayItems[0].el.classList.add('focused');
+  }
+
+  function fmtMB(mb) {
+    if (!mb && mb !== 0) return '—';
+    return mb >= 1024 ? (mb / 1024).toFixed(1) + ' GB' : Math.round(mb) + ' MB';
+  }
+
+  var sysInfo = {};
+
+  function openSettings() {
+    mode = 'settings';
+    moveStage = null;
+    showOverlay('Ajustes');
+    gridEl.style.display = 'none';
+    rowsEl.style.display = 'flex';
+    hint.textContent = '◀ ▶ cambia · OK abre · ATRÁS vuelve';
+
+    try { sysInfo = JSON.parse(valen.info()); } catch (e) { sysInfo = {}; }
+
+    var spec = [
+      { type: 'section', label: 'Reloj' },
+      { label: 'Formato de hora', type: 'seg', values: ['24 H', '12 H'],
+        get: function () { return cfg.h24 ? 0 : 1; }, set: function (i) { cfg.h24 = (i === 0); } },
+      { label: 'Mostrar fecha', type: 'seg', values: ['SÍ', 'NO'],
+        get: function () { return cfg.showDate ? 0 : 1; }, set: function (i) { cfg.showDate = (i === 0); } },
+      { label: 'Tamaño del reloj', type: 'seg', values: ['S', 'M', 'L'],
+        get: function () { return cfg.size === 's' ? 0 : (cfg.size === 'l' ? 2 : 1); },
+        set: function (i) { cfg.size = ['s', 'm', 'l'][i]; } },
+
+      { label: 'Posición del reloj', type: 'seg', values: ['IZQ', 'CENTRO', 'DCHA'],
+        get: function () { return ['left', 'center', 'right'].indexOf(cfg.clockPos); },
+        set: function (i) { cfg.clockPos = ['left', 'center', 'right'][i]; } },
+      { label: 'Posición de apps', type: 'seg', values: ['IZQ', 'CENTRO', 'DCHA'],
+        get: function () { return ['left', 'center', 'right'].indexOf(cfg.appsPos); },
+        set: function (i) { cfg.appsPos = ['left', 'center', 'right'][i]; } },
+
+      { type: 'section', label: 'Fondo' },
+      { label: 'Fondo de pantalla', type: 'seg', values: ['IMAGEN', 'LISO'],
+        get: function () { return cfg.wallpaper ? 0 : 1; }, set: function (i) { cfg.wallpaper = (i === 0); } },
+
+      { type: 'section', label: 'Red' },
+      { label: 'Dirección IP', type: 'info', value: function () { return sysInfo.ip || '—'; } },
+      { label: 'Cambiar de red', type: 'act', act: function () { valen.open('wifi'); } },
+
+      { type: 'section', label: 'Sistema' },
+      { label: 'Memoria libre', type: 'info',
+        value: function () { return fmtMB(sysInfo.ramFree) + ' de ' + fmtMB(sysInfo.ramTotal); } },
+      { label: 'Almacenamiento', type: 'info',
+        value: function () { return fmtMB(sysInfo.diskFree) + ' de ' + fmtMB(sysInfo.diskTotal); } },
+      { label: 'Modelo', type: 'info', value: function () { return sysInfo.model || '—'; } },
+      { label: 'Android', type: 'info', value: function () { return sysInfo.android || '—'; } },
+
+      { type: 'section', label: 'Aplicaciones' },
+      { label: 'Apps instaladas', type: 'info',
+        value: function () { return String(Object.keys(appIndex).length); } },
+      { label: 'Gestionar aplicaciones', type: 'act', act: function () { valen.open('apps'); } },
+
+      { type: 'section', label: 'Avanzado' },
+      { label: 'Ajustes del sistema', type: 'act', act: function () { valen.open('settings'); } },
+      { label: 'Pantalla y sonido', type: 'act', act: function () { valen.open('display'); } },
+      { label: 'Acerca del dispositivo', type: 'act', act: function () { valen.open('about'); } }
+    ];
+
+    rowsEl.innerHTML = '';
+    rowDefs = [];
+    ri = 0;
+
+    spec.forEach(function (item) {
+      if (item.type === 'section') {
+        var h = document.createElement('div');
+        h.className = 'sect';
+        h.textContent = item.label;
+        rowsEl.appendChild(h);
+        return;
+      }
+      var idx = rowDefs.length;
+      var row = document.createElement('div');
+      row.className = 'row';
+      var lab = document.createElement('div');
+      lab.className = 'lab';
+      lab.textContent = item.label;
+      var val = document.createElement('div');
+      val.className = 'val';
+      row.appendChild(lab);
+      row.appendChild(val);
+      item.el = row;
+      item.valEl = val;
+      row.addEventListener('click', function () { if (item.type !== 'info') activateRow(idx); });
+      rowsEl.appendChild(row);
+      rowDefs.push(item);
+    });
+
+    refreshRows();
+    if (rowDefs.length) rowDefs[0].el.classList.add('focused');
+  }
+
+  function refreshRows() {
+    rowDefs.forEach(function (def) {
+      if (def.type === 'info') {
+        def.valEl.innerHTML = '<span class="cur">' + (def.value ? def.value() : '') + '</span>';
+      } else if (def.type === 'seg') {
+        def.valEl.innerHTML = '<span class="arw">&#8249;</span><span class="cur">' + def.values[def.get()] +
+          '</span><span class="arw">&#8250;</span>';
+      } else {
+        def.valEl.innerHTML = '<span class="arw">&#8250;</span>';
+      }
+    });
+  }
+
+  function activateRow(i) {
+    var def = rowDefs[i];
+    if (!def) return;
+    if (def.type === 'seg') {
+      def.set((def.get() + 1) % def.values.length);
+      saveCfg(); applyCfg(); refreshRows();
+    } else if (def.type === 'act' && def.act) def.act();
+  }
+
+  function changeRow(i, dir) {
+    var def = rowDefs[i];
+    if (!def || def.type !== 'seg') return;
+    def.set((def.get() + dir + def.values.length) % def.values.length);
+    saveCfg(); applyCfg(); refreshRows();
+  }
+
+  function setRowFocus(i) {
+    rowDefs.forEach(function (d) { d.el.classList.remove('focused'); });
+    ri = (i + rowDefs.length) % rowDefs.length;
+    rowDefs[ri].el.classList.add('focused');
+    try { rowDefs[ri].el.scrollIntoView({ block: 'nearest' }); } catch (e) {}
+  }
+
+  function closeOverlay() {
+    overlay.classList.remove('on');
+    valen.setOverlay(false);
+    mode = 'home';
+    moveMode = false;
+    overlayItems.forEach(function (o) { o.el.classList.remove('focused'); });
+    rowDefs.forEach(function (d) { if (d.el) d.el.classList.remove('focused'); });
+    setFocus(fi);
+  }
+  window.__closeOverlay = closeOverlay;
+
+  function launch(app) {
+    if (app && app.cmp) valen.launchCmp(app.cmp);
+    else if (app && app.pkg) valen.launch(app.pkg);
+    closeOverlay();
+  }
+
+  function focusOverlay(i) {
+    if (!overlayItems.length) return;
+    overlayItems.forEach(function (o) { o.el.classList.remove('focused'); });
+    oi = (i + overlayItems.length) % overlayItems.length;
+    overlayItems[oi].el.classList.add('focused');
+  }
+
+  var moveStage = null;
+  var movePkg = null;
+  var moveDest = 0;
+  var ai = 0;
+  var curFolder = '';
+
+  function navApps() { return overlayItems.filter(function (o) { return !o.isMove; }); }
+
+  function focusApp(i) {
+    var a = navApps();
+    if (!a.length) return;
+    overlayItems.forEach(function (o) { o.el.classList.remove('focused'); });
+    ai = (i + a.length) % a.length;
+    a[ai].el.classList.add('focused');
+  }
+
+  function enterMove() {
+    moveStage = 'pick';
+    focusApp(0);
+    ptitle.textContent = 'Mover app';
+    hint.textContent = '◀ ▶ elige app · OK sigue · ATRÁS cancela';
+  }
+
+  function cancelMove() {
+    moveStage = null;
+    ptitle.textContent = curFolder;
+    hint.textContent = 'OK abre · MOVER cambia de carpeta · ATRÁS vuelve';
+  }
+
+  function pickApp() {
+    var a = navApps();
+    if (!a.length) return;
+    movePkg = a[ai].pkg;
+    moveStage = 'dest';
+    moveDest = 0;
+    ptitle.textContent = 'Mover a: ' + groups[moveDest];
+    hint.textContent = '▲ ▼ elige carpeta · OK mueve · ATRÁS cancela';
+  }
+
+  function confirmMove() {
+    if (!movePkg || !groups[moveDest]) return;
+    moves[movePkg] = groups[moveDest];
+    saveMoves();
+    moveStage = null;
+    closeOverlay();
+    buildFolders();
+  }
+
+  function moveFolderNav(k) {
+    if (moveStage === 'pick') {
+      if (k === 22 || k === 20) focusApp(ai + 1);
+      else if (k === 21 || k === 19) focusApp(ai - 1);
+      else if (k === 23 || k === 66) pickApp();
+      else if (k === 4 || k === 82) cancelMove();
+      return;
+    }
+    if (moveStage === 'dest') {
+      if (k === 19 || k === 20) {
+        moveDest = (moveDest + (k === 19 ? -1 : 1) + groups.length) % groups.length;
+        ptitle.textContent = 'Mover a: ' + groups[moveDest];
+      } else if (k === 23 || k === 66) confirmMove();
+      else if (k === 4 || k === 82) cancelMove();
+      return;
+    }
+    if (k === 22) focusOverlay(oi + 1);
+    else if (k === 21) focusOverlay(oi - 1);
+    else if (k === 20) focusOverlay(oi + 4);
+    else if (k === 19) focusOverlay(oi - 4);
+    else if (k === 23 || k === 66) {
+      var it = overlayItems[oi];
+      if (!it) return;
+      if (it.isMove) { if (groups.length > 1) enterMove(); }
+      else launch(it);
+    }
+  }
+
+  function moveSettings(k) {
+    if (k === 20) setRowFocus(ri + 1);
+    else if (k === 19) setRowFocus(ri - 1);
+    else if (k === 22) changeRow(ri, 1);
+    else if (k === 21) changeRow(ri, -1);
+    else if (k === 23 || k === 66) activateRow(ri);
+  }
+
+  function moveHome(k) {
+    var n = focusables.length;
+    if (k === 22) setFocus(fi + 1);
+    else if (k === 21) setFocus(fi - 1);
+    else if (k === 20) setFocus(n - 1);
+    else if (k === 19) setFocus(0);
+    else if (k === 23 || k === 66) {
+      var el = focusables[fi];
+      if (el === gearEl) openSettings();
+      else if (el) el.click();
+    }
+  }
+
+  window.__key = function (k) {
+    if (k < 0) return;
+    if (k === 4) { if (mode !== 'home') closeOverlay(); return; }
+    if (mode === 'folder') moveFolderNav(k);
+    else if (mode === 'settings') moveSettings(k);
+    else moveHome(k);
+  };
+
+  gearEl.addEventListener('click', openSettings);
+  window.__refresh = function () { try { if (mode === 'home') buildFolders(); } catch (e) {} };
+
+  applyCfg();
+  (function schedule() {
+    var d = new Date();
+    setTimeout(function () { tick(); schedule(); }, 60000 - (d.getSeconds() * 1000 + d.getMilliseconds()) + 50);
+  })();
+  buildFolders();
+})();
+</script>
+</body>
+</html>
