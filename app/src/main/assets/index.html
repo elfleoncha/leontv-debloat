@@ -98,6 +98,9 @@
   .row .val .arw{opacity:.45;font-size:1.2vw}
   .row.focused{background:rgba(255,255,255,.10);border-left-color:rgba(255,255,255,.75)}
   .row.focused .val{color:#fff}
+  .vbar{width:13vw;height:.85vh;border-radius:1vh;background:rgba(255,255,255,.14);overflow:hidden}
+  .vbar i{display:block;height:100%;background:rgba(255,255,255,.85);border-radius:1vh;transition:width .1s linear}
+  .vnum{min-width:4.5vw;text-align:right;font-variant-numeric:tabular-nums}
   .row.focused .val .arw{opacity:.9}
   .sect{margin:1.8vh 0 .4vh;font-size:.82vw;letter-spacing:.34em;text-transform:uppercase;
     color:rgba(255,255,255,.34);padding-left:.4vw}
@@ -153,7 +156,7 @@ window.onerror = function (m, s, l) { try { console.log('JSERR ' + m + ' @' + l)
   var moveDest = 0;
   var movePkg = null;
 
-  var cfg = { h24: true, showDate: true, size: 'm', wallpaper: true, clockPos: 'right', appsPos: 'right' };
+  var cfg = { h24: true, showDate: true, size: 'm', wallpaper: true, clockPos: 'right', appsPos: 'right', sounds: true };
   try {
     var saved = JSON.parse(localStorage.getItem('valenhome.cfg') || 'null');
     if (saved) for (var k in saved) if (cfg.hasOwnProperty(k)) cfg[k] = saved[k];
@@ -194,11 +197,23 @@ window.onerror = function (m, s, l) { try { console.log('JSERR ' + m + ' @' + l)
     }
   }
 
+  function tickSound() {
+    if (!cfg.sounds) return;
+    try { valen.tick(); } catch (e) {}
+  }
+
+  function openSound() {
+    if (!cfg.sounds) return;
+    try { valen.openSound(); } catch (e) {}
+  }
+
   function setFocus(i) {
     if (!focusables.length) return;
     focusables.forEach(function (el) { el.classList.remove('focused'); });
+    var prev = fi;
     fi = (i + focusables.length) % focusables.length;
     focusables[fi].classList.add('focused');
+    if (prev !== fi) tickSound();
   }
 
   var CAT = { 0: 'JUEGOS', 1: 'MÚSICA', 2: 'VER', 3: 'FOTOS', 4: 'SOCIAL', 5: 'NOTICIAS', 6: 'MAPAS', 7: 'APPS', 8: 'ACCESIBILIDAD' };
@@ -299,6 +314,7 @@ window.onerror = function (m, s, l) { try { console.log('JSERR ' + m + ' @' + l)
     gridEl.style.display = 'grid';
     rowsEl.style.display = 'none';
     hint.textContent = 'OK abre · MOVER cambia de carpeta · ATRÁS vuelve';
+    openSound();
     overlayItems = [];
     oi = 0;
 
@@ -348,6 +364,7 @@ window.onerror = function (m, s, l) { try { console.log('JSERR ' + m + ' @' + l)
     gridEl.style.display = 'none';
     rowsEl.style.display = 'flex';
     hint.textContent = '◀ ▶ cambia · OK abre · ATRÁS vuelve';
+    openSound();
 
     try { sysInfo = JSON.parse(valen.info()); } catch (e) { sysInfo = {}; }
 
@@ -371,6 +388,11 @@ window.onerror = function (m, s, l) { try { console.log('JSERR ' + m + ' @' + l)
       { type: 'section', label: 'Fondo' },
       { label: 'Fondo de pantalla', type: 'seg', values: ['IMAGEN', 'LISO'],
         get: function () { return cfg.wallpaper ? 0 : 1; }, set: function (i) { cfg.wallpaper = (i === 0); } },
+
+      { type: 'section', label: 'Sonido' },
+      { label: 'Volumen', type: 'vol' },
+      { label: 'Sonidos del sistema', type: 'seg', values: ['SÍ', 'NO'],
+        get: function () { return cfg.sounds ? 0 : 1; }, set: function (i) { cfg.sounds = (i === 0); } },
 
       { type: 'section', label: 'Red' },
       { label: 'Dirección IP', type: 'info', value: function () { return sysInfo.ip || '—'; } },
@@ -430,7 +452,13 @@ window.onerror = function (m, s, l) { try { console.log('JSERR ' + m + ' @' + l)
 
   function refreshRows() {
     rowDefs.forEach(function (def) {
-      if (def.type === 'info') {
+      if (def.type === 'vol') {
+        var cur = 0, max = 15;
+        try { cur = valen.volGet(); max = valen.volMax() || 15; } catch (e) {}
+        var pct = Math.round((cur / max) * 100);
+        def.valEl.innerHTML = '<span class="vbar"><i style="width:' + pct + '%"></i></span>' +
+          '<span class="vnum">' + cur + '</span>';
+      } else if (def.type === 'info') {
         def.valEl.innerHTML = '<span class="cur">' + (def.value ? def.value() : '') + '</span>';
       } else if (def.type === 'seg') {
         def.valEl.innerHTML = '<span class="arw">&#8249;</span><span class="cur">' + def.values[def.get()] +
@@ -448,19 +476,29 @@ window.onerror = function (m, s, l) { try { console.log('JSERR ' + m + ' @' + l)
       def.set((def.get() + 1) % def.values.length);
       saveCfg(); applyCfg(); refreshRows();
     } else if (def.type === 'act' && def.act) def.act();
+    else if (def.type === 'vol') tickSound();
   }
 
   function changeRow(i, dir) {
     var def = rowDefs[i];
-    if (!def || def.type !== 'seg') return;
+    if (!def) return;
+    if (def.type === 'vol') {
+      try { valen.volSet(valen.volGet() + dir); } catch (e) {}
+      tickSound();
+      refreshRows();
+      return;
+    }
+    if (def.type !== 'seg') return;
     def.set((def.get() + dir + def.values.length) % def.values.length);
     saveCfg(); applyCfg(); refreshRows();
   }
 
   function setRowFocus(i) {
     rowDefs.forEach(function (d) { d.el.classList.remove('focused'); });
+    var prev = ri;
     ri = (i + rowDefs.length) % rowDefs.length;
     rowDefs[ri].el.classList.add('focused');
+    if (prev !== ri) tickSound();
     try { rowDefs[ri].el.scrollIntoView({ block: 'nearest' }); } catch (e) {}
   }
 
@@ -484,8 +522,10 @@ window.onerror = function (m, s, l) { try { console.log('JSERR ' + m + ' @' + l)
   function focusOverlay(i) {
     if (!overlayItems.length) return;
     overlayItems.forEach(function (o) { o.el.classList.remove('focused'); });
+    var prev = oi;
     oi = (i + overlayItems.length) % overlayItems.length;
     overlayItems[oi].el.classList.add('focused');
+    if (prev !== oi) tickSound();
   }
 
   var moveStage = null;
@@ -515,6 +555,7 @@ window.onerror = function (m, s, l) { try { console.log('JSERR ' + m + ' @' + l)
     moveStage = null;
     ptitle.textContent = curFolder;
     hint.textContent = 'OK abre · MOVER cambia de carpeta · ATRÁS vuelve';
+    openSound();
   }
 
   function pickApp() {

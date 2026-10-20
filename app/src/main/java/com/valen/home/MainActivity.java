@@ -27,6 +27,8 @@ public class MainActivity extends Activity {
 
     private WebView web;
     private volatile boolean overlayOpen = false;
+    private android.media.SoundPool sounds;
+    private int sndTick = 0, sndOpen = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -66,6 +68,17 @@ public class MainActivity extends Activity {
         web.addJavascriptInterface(new Bridge(), "valen");
         web.loadUrl("file:///android_asset/index.html");
         setContentView(web);
+
+        try {
+            android.media.AudioAttributes attrs = new android.media.AudioAttributes.Builder()
+                    .setUsage(android.media.AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)
+                    .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build();
+            sounds = new android.media.SoundPool.Builder().setMaxStreams(3).setAudioAttributes(attrs).build();
+            sndTick = sounds.load(this, R.raw.tick, 1);
+            sndOpen = sounds.load(this, R.raw.open, 1);
+        } catch (Exception ignored) {
+        }
     }
 
     @Override
@@ -270,6 +283,54 @@ public class MainActivity extends Activity {
                     startActivity(it2);
                 } catch (Exception ignored) {
                 }
+            }
+        }
+
+        @JavascriptInterface
+        public void tick() {
+            try {
+                if (sounds != null && sndTick != 0) sounds.play(sndTick, 0.30f, 0.30f, 1, 0, 1f);
+            } catch (Exception ignored) {
+            }
+        }
+
+        @JavascriptInterface
+        public void openSound() {
+            try {
+                if (sounds != null && sndOpen != 0) sounds.play(sndOpen, 0.35f, 0.35f, 1, 0, 1f);
+            } catch (Exception ignored) {
+            }
+        }
+
+        @JavascriptInterface
+        public int volMax() {
+            try {
+                android.media.AudioManager am = (android.media.AudioManager) getSystemService(AUDIO_SERVICE);
+                return am.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC);
+            } catch (Exception e) {
+                return 15;
+            }
+        }
+
+        @JavascriptInterface
+        public int volGet() {
+            try {
+                android.media.AudioManager am = (android.media.AudioManager) getSystemService(AUDIO_SERVICE);
+                return am.getStreamVolume(android.media.AudioManager.STREAM_MUSIC);
+            } catch (Exception e) {
+                return 0;
+            }
+        }
+
+        @JavascriptInterface
+        public void volSet(int v) {
+            try {
+                android.media.AudioManager am = (android.media.AudioManager) getSystemService(AUDIO_SERVICE);
+                int max = am.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC);
+                if (v < 0) v = 0;
+                if (v > max) v = max;
+                am.setStreamVolume(android.media.AudioManager.STREAM_MUSIC, v, 0);
+            } catch (Exception ignored) {
             }
         }
 
