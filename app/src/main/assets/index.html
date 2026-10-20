@@ -166,6 +166,9 @@ window.onerror = function (m, s, l) { try { console.log('JSERR ' + m + ' @' + l)
   var ptitle = document.getElementById('ptitle');
   var hint = document.getElementById('hint');
   var wall = document.getElementById('wall');
+  var volhud = document.getElementById('volhud');
+  var volfill = document.getElementById('volfill');
+  var volnum = document.getElementById('volnum');
 
   var mode = 'home';
   var focusables = [];
@@ -175,14 +178,22 @@ window.onerror = function (m, s, l) { try { console.log('JSERR ' + m + ' @' + l)
   var rowDefs = [];
   var ri = 0;
   var groups = [];
-  var moveMode = false;
-  var moveDest = 0;
+  var moveStage = null;
   var movePkg = null;
+  var moveDest = 0;
+  var ai = 0;
+  var curFolder = '';
+  var appIndex = {};
+  var sysInfo = {};
+  var volTimer = null;
 
-  var cfg = { h24: true, showDate: true, size: 'm', wallpaper: true, clockPos: 'right', appsPos: 'right', sounds: true };
+  var cfg = {
+    h24: true, showDate: true, size: 'm', wallpaper: true,
+    clockPos: 'right', appsPos: 'right', sounds: true, lang: 'es'
+  };
   try {
     var saved = JSON.parse(localStorage.getItem('valenhome.cfg') || 'null');
-    if (saved) for (var k in saved) if (cfg.hasOwnProperty(k)) cfg[k] = saved[k];
+    if (saved) { for (var key in saved) { if (cfg.hasOwnProperty(key)) cfg[key] = saved[key]; } }
   } catch (e) {}
   function saveCfg() { try { localStorage.setItem('valenhome.cfg', JSON.stringify(cfg)); } catch (e) {} }
 
@@ -190,44 +201,54 @@ window.onerror = function (m, s, l) { try { console.log('JSERR ' + m + ' @' + l)
   try { moves = JSON.parse(localStorage.getItem('valenhome.moves') || '{}') || {}; } catch (e) {}
   function saveMoves() { try { localStorage.setItem('valenhome.moves', JSON.stringify(moves)); } catch (e) {} }
 
+  var K = ['ajustes','reloj','sonido','red','sistema','apps','fondo','avanzado','hora','fecha','tam',
+    'posReloj','posApps','fondoT','volumen','sonidos','fondoMovil','cambiarRed','memoria','almacenamiento',
+    'modelo','android','appsInstaladas','gestionar','ajustesSistema','pantallaSonido','acerca','idioma',
+    'si','no','izq','centro','dcha','imagen','liso','abre','mueve','vuelve','cambia','mover','ver',
+    'appsCat','musica','juegos','fotos','social','noticias','mapas','accesibilidad','tienda'];
+
+  var L = {
+    es: ['Ajustes','Reloj','Sonido','Red','Sistema','Aplicaciones','Fondo','Avanzado','Formato de hora','Mostrar fecha','Tamaño del reloj','Posición del reloj','Posición de apps','Fondo de pantalla','Volumen','Sonidos del sistema','Fondo desde el móvil','Cambiar de red','Memoria libre','Almacenamiento','Modelo','Android','Apps instaladas','Gestionar aplicaciones','Ajustes del sistema','Pantalla y sonido','Acerca del dispositivo','Idioma','SÍ','NO','IZQ','CENTRO','DCHA','IMAGEN','LISO','OK abre','MOVER cambia','ATRÁS vuelve','cambia','MOVER','VER','APPS','MÚSICA','JUEGOS','FOTOS','SOCIAL','NOTICIAS','MAPAS','ACCESIBILIDAD','TIENDA'],
+    en: ['Settings','Clock','Sound','Network','System','Apps','Wallpaper','Advanced','Time format','Show date','Clock size','Clock position','Apps position','Wallpaper','Volume','System sounds','Wallpaper from phone','Change network','Free memory','Storage','Model','Android','Apps installed','Manage apps','System settings','Display and sound','About device','Language','YES','NO','LEFT','CENTER','RIGHT','IMAGE','PLAIN','OK opens','MOVER moves','BACK returns','change','MOVE','WATCH','APPS','MUSIC','GAMES','PHOTOS','SOCIAL','NEWS','MAPS','ACCESSIBILITY','STORE'],
+    it: ['Impostazioni','Orologio','Audio','Rete','Sistema','App','Sfondo','Avanzate','Formato ora','Mostra data','Dimensione orologio','Posizione orologio','Posizione app','Sfondo','Volume','Suoni di sistema','Sfondo dal telefono','Cambia rete','Memoria libera','Archiviazione','Modello','Android','App installate','Gestisci app','Impostazioni di sistema','Schermo e audio','Info dispositivo','Lingua','SÌ','NO','SINISTRA','CENTRO','DESTRA','IMMAGINE','PIENO','OK apre','MOVER sposta','INDIETRO','cambia','SPOSTA','GUARDA','APP','MUSICA','GIOCHI','FOTO','SOCIAL','NOTIZIE','MAPPE','ACCESSIBILITÀ','NEGOZIO'],
+    fr: ['Réglages','Horloge','Son','Réseau','Système','Applications','Fond','Avancé','Format heure','Afficher la date','Taille horloge','Position horloge','Position applis','Fond d\u2019écran','Volume','Sons système','Fond depuis le téléphone','Changer de réseau','Mémoire libre','Stockage','Modèle','Android','Applis installées','Gérer les applis','Réglages système','Affichage et son','À propos','Langue','OUI','NON','GAUCHE','CENTRE','DROITE','IMAGE','UNI','OK ouvre','MOVER déplace','RETOUR','change','DÉPLACER','REGARDER','APPLIS','MUSIQUE','JEUX','PHOTOS','SOCIAL','ACTUS','CARTES','ACCESSIBILITÉ','STORE'],
+    de: ['Einstellungen','Uhr','Ton','Netzwerk','System','Apps','Hintergrund','Erweitert','Zeitformat','Datum anzeigen','Uhrgröße','Uhrposition','App-Position','Hintergrundbild','Lautstärke','Systemtöne','Hintergrund vom Handy','Netzwerk wechseln','Freier Speicher','Speicher','Modell','Android','Installierte Apps','Apps verwalten','Systemeinstellungen','Bild und Ton','Über das Gerät','Sprache','JA','NEIN','LINKS','MITTE','RECHTS','BILD','PLAIN','OK öffnet','MOVER verschiebt','ZURÜCK','ändern','VERSCHIEBEN','ANSEHEN','APPS','MUSIK','SPIELE','FOTOS','SOCIAL','NEWS','KARTEN','BARRIEREFREI','STORE'],
+    pt: ['Definições','Relógio','Som','Rede','Sistema','Aplicações','Fundo','Avançado','Formato hora','Mostrar data','Tamanho relógio','Posição relógio','Posição apps','Fundo de ecrã','Volume','Sons do sistema','Fundo do telemóvel','Mudar de rede','Memória livre','Armazenamento','Modelo','Android','Apps instaladas','Gerir apps','Definições do sistema','Ecrã e som','Sobre o dispositivo','Idioma','SIM','NÃO','ESQ','CENTRO','DIR','IMAGEM','LISO','OK abre','MOVER move','VOLTAR','muda','MOVER','VER','APPS','MÚSICA','JOGOS','FOTOS','SOCIAL','NOTÍCIAS','MAPAS','ACESSIBILIDADE','LOJA']
+  };
+
+  function t(key) {
+    var i = K.indexOf(key);
+    var lang = L[cfg.lang] || L.es;
+    return (i >= 0 && lang[i]) ? lang[i] : (L.es[i] || key);
+  }
+
+  var CATK = { 'VER': 'ver', 'APPS': 'appsCat', 'MÚSICA': 'musica', 'JUEGOS': 'juegos', 'FOTOS': 'fotos',
+    'SOCIAL': 'social', 'NOTICIAS': 'noticias', 'MAPAS': 'mapas', 'ACCESIBILIDAD': 'accesibilidad', 'TIENDA': 'tienda' };
+
+  function catName(n) { var k = CATK[n]; return k ? t(k) : n; }
+
+  function tickSound() { if (!cfg.sounds) return; try { valen.tick(); } catch (e) {} }
+  function openSound() { if (!cfg.sounds) return; try { valen.openSound(); } catch (e) {} }
+
   function applyCfg() {
     document.getElementById('clock').className = 'clock' + (cfg.size === 's' ? ' s' : (cfg.size === 'l' ? ' l' : ''));
     document.getElementById('date').className = 'date' + (cfg.showDate ? '' : ' hidden');
     wall.style.opacity = cfg.wallpaper ? '1' : '0';
-    var st = document.querySelector('.stage');
-    var lf = document.querySelector('.left');
-    var cd = document.getElementById('cards');
-    st.className = 'stage pos-' + (cfg.clockPos || 'right');
-    lf.className = 'left al-' + (cfg.clockPos || 'right');
-    cd.className = 'cards pos-' + (cfg.appsPos || 'right');
+    document.querySelector('.stage').className = 'stage pos-' + (cfg.clockPos || 'right');
+    document.querySelector('.left').className = 'left al-' + (cfg.clockPos || 'right');
+    document.getElementById('cards').className = 'cards pos-' + (cfg.appsPos || 'right');
     tick(true);
   }
 
   var lastClock = '', lastDate = '';
   function tick(force) {
-    var d = new Date(), h = d.getHours(), mm = ('0' + d.getMinutes()).slice(-2), t;
-    if (cfg.h24) t = ('0' + h).slice(-2) + ':' + mm;
-    else { var h12 = h % 12; if (h12 === 0) h12 = 12; t = h12 + ':' + mm; }
-    if (t !== lastClock || force) {
-      lastClock = t;
-      document.getElementById('clock').textContent = t;
-    }
+    var d = new Date(), h = d.getHours(), mm = ('0' + d.getMinutes()).slice(-2), tc;
+    if (cfg.h24) tc = ('0' + h).slice(-2) + ':' + mm;
+    else { var h12 = h % 12; if (h12 === 0) h12 = 12; tc = h12 + ':' + mm; }
+    if (tc !== lastClock || force) { lastClock = tc; document.getElementById('clock').textContent = tc; }
     var ds = d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' }).replace(/,/g, '');
     ds = ds.charAt(0).toUpperCase() + ds.slice(1);
-    if (ds !== lastDate || force) {
-      lastDate = ds;
-      document.getElementById('date').textContent = ds;
-    }
-  }
-
-  function tickSound() {
-    if (!cfg.sounds) return;
-    try { valen.tick(); } catch (e) {}
-  }
-
-  function openSound() {
-    if (!cfg.sounds) return;
-    try { valen.openSound(); } catch (e) {}
+    if (ds !== lastDate || force) { lastDate = ds; document.getElementById('date').textContent = ds; }
   }
 
   function setFocus(i) {
@@ -265,7 +286,7 @@ window.onerror = function (m, s, l) { try { console.log('JSERR ' + m + ' @' + l)
     });
     var nm = document.createElement('div');
     nm.className = 'name';
-    nm.textContent = name;
+    nm.textContent = catName(name);
     card.appendChild(stack);
     card.appendChild(nm);
     card.addEventListener('click', function () { openList(name, items); });
@@ -275,17 +296,17 @@ window.onerror = function (m, s, l) { try { console.log('JSERR ' + m + ' @' + l)
 
   function buildFolders() {
     var prev = fi;
-    var sig = '';
-    var changed = false;
-    cardsEl.innerHTML = '';
-    focusables = [];
     var index = {};
+    var sig = '';
     try {
       JSON.parse(valen.all()).forEach(function (a) { index[a.pkg] = a; sig += a.cmp + '|'; });
     } catch (e) {}
+    appIndex = index;
     if (sig === window.__sig && cardsEl.childElementCount > 0) return;
     window.__sig = sig;
 
+    cardsEl.innerHTML = '';
+    focusables = [];
     var order = [];
     var byName = {};
     function bucket(n) { if (!byName[n]) { byName[n] = []; order.push(n); } return byName[n]; }
@@ -304,10 +325,9 @@ window.onerror = function (m, s, l) { try { console.log('JSERR ' + m + ' @' + l)
 
     Object.keys(index).forEach(function (p) {
       var a = index[p];
-      if (a._used || p === 'com.valen.home' || p === 'com.gathin.tvhome') return;
+      if (a._used || p === 'com.valen.home') return;
       bucket(moves[p] || guessCat(a)).push(a);
     });
-
     Object.keys(index).forEach(function (p) { index[p]._used = false; });
 
     groups = [];
@@ -333,10 +353,11 @@ window.onerror = function (m, s, l) { try { console.log('JSERR ' + m + ' @' + l)
   function openList(name, items) {
     mode = 'folder';
     moveStage = null;
-    showOverlay(name);
+    curFolder = name;
+    showOverlay(catName(name));
     gridEl.style.display = 'grid';
     rowsEl.style.display = 'none';
-    hint.textContent = 'OK abre · MOVER cambia de carpeta · ATRÁS vuelve';
+    hint.textContent = 'OK · ' + t('mover') + ' · ' + t('vuelve');
     openSound();
     overlayItems = [];
     oi = 0;
@@ -351,9 +372,9 @@ window.onerror = function (m, s, l) { try { console.log('JSERR ' + m + ' @' + l)
       sp.textContent = a.label;
       el.appendChild(img);
       el.appendChild(sp);
-      el.addEventListener('click', function () { if (!moveMode) launch(a.pkg); });
+      el.addEventListener('click', function () { if (!moveStage) launch(a); });
       gridEl.appendChild(el);
-      overlayItems.push({ el: el, pkg: a.pkg, label: a.label });
+      overlayItems.push({ el: el, pkg: a.pkg, cmp: a.cmp, label: a.label });
     });
     if (!overlayItems.length) return;
 
@@ -363,13 +384,13 @@ window.onerror = function (m, s, l) { try { console.log('JSERR ' + m + ' @' + l)
     mvi.style.cssText = 'width:7.2vh;height:7.2vh;border-radius:1.8vh;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.10);font-size:3vh;color:rgba(255,255,255,.7)';
     mvi.textContent = '\u21C4';
     var mvs = document.createElement('span');
-    mvs.textContent = 'MOVER';
-    mv.appendChild(mvi); mv.appendChild(mvs);
+    mvs.textContent = t('mover');
+    mv.appendChild(mvi);
+    mv.appendChild(mvs);
     mv.addEventListener('click', function () { if (!moveStage) enterMove(); });
     gridEl.appendChild(mv);
-    overlayItems.push({ el: mv, isMove: true, pkg: null, label: 'MOVER' });
+    overlayItems.push({ el: mv, isMove: true });
 
-    curFolder = name;
     overlayItems[0].el.classList.add('focused');
   }
 
@@ -378,66 +399,69 @@ window.onerror = function (m, s, l) { try { console.log('JSERR ' + m + ' @' + l)
     return mb >= 1024 ? (mb / 1024).toFixed(1) + ' GB' : Math.round(mb) + ' MB';
   }
 
-  var sysInfo = {};
-
   function openSettings() {
     mode = 'settings';
     moveStage = null;
-    showOverlay('Ajustes');
+    showOverlay(t('ajustes'));
     gridEl.style.display = 'none';
     rowsEl.style.display = 'flex';
-    hint.textContent = '◀ ▶ cambia · OK abre · ATRÁS vuelve';
+    hint.textContent = '◀ ▶ ' + t('cambia') + ' · OK · ' + t('vuelve');
     openSound();
 
     try { sysInfo = JSON.parse(valen.info()); } catch (e) { sysInfo = {}; }
 
     var spec = [
-      { type: 'section', label: 'Reloj' },
-      { label: 'Formato de hora', type: 'seg', values: ['24 H', '12 H'],
+      { type: 'section', label: t('ajustes') },
+      { label: t('idioma'), type: 'seg', values: ['ES', 'EN', 'IT', 'FR', 'DE', 'PT'],
+        get: function () { return ['es', 'en', 'it', 'fr', 'de', 'pt'].indexOf(cfg.lang || 'es'); },
+        set: function (i) { cfg.lang = ['es', 'en', 'it', 'fr', 'de', 'pt'][i]; } },
+
+      { type: 'section', label: t('reloj') },
+      { label: t('hora'), type: 'seg', values: ['24 H', '12 H'],
         get: function () { return cfg.h24 ? 0 : 1; }, set: function (i) { cfg.h24 = (i === 0); } },
-      { label: 'Mostrar fecha', type: 'seg', values: ['SÍ', 'NO'],
+      { label: t('fecha'), type: 'seg', values: [t('si'), t('no')],
         get: function () { return cfg.showDate ? 0 : 1; }, set: function (i) { cfg.showDate = (i === 0); } },
-      { label: 'Tamaño del reloj', type: 'seg', values: ['S', 'M', 'L'],
+      { label: t('tam'), type: 'seg', values: ['S', 'M', 'L'],
         get: function () { return cfg.size === 's' ? 0 : (cfg.size === 'l' ? 2 : 1); },
         set: function (i) { cfg.size = ['s', 'm', 'l'][i]; } },
-
-      { label: 'Posición del reloj', type: 'seg', values: ['IZQ', 'CENTRO', 'DCHA'],
+      { label: t('posReloj'), type: 'seg', values: [t('izq'), t('centro'), t('dcha')],
         get: function () { return ['left', 'center', 'right'].indexOf(cfg.clockPos); },
         set: function (i) { cfg.clockPos = ['left', 'center', 'right'][i]; } },
-      { label: 'Posición de apps', type: 'seg', values: ['IZQ', 'CENTRO', 'DCHA'],
+      { label: t('posApps'), type: 'seg', values: [t('izq'), t('centro'), t('dcha')],
         get: function () { return ['left', 'center', 'right'].indexOf(cfg.appsPos); },
         set: function (i) { cfg.appsPos = ['left', 'center', 'right'][i]; } },
 
-      { type: 'section', label: 'Fondo' },
-      { label: 'Fondo de pantalla', type: 'seg', values: ['IMAGEN', 'LISO'],
+      { type: 'section', label: t('fondo') },
+      { label: t('fondoT'), type: 'seg', values: [t('imagen'), t('liso')],
         get: function () { return cfg.wallpaper ? 0 : 1; }, set: function (i) { cfg.wallpaper = (i === 0); } },
 
-      { type: 'section', label: 'Sonido' },
-      { label: 'Volumen', type: 'vol' },
-      { label: 'Sonidos del sistema', type: 'seg', values: ['SÍ', 'NO'],
+      { type: 'section', label: t('sonido') },
+      { label: t('volumen'), type: 'vol' },
+      { label: t('sonidos'), type: 'seg', values: [t('si'), t('no')],
         get: function () { return cfg.sounds ? 0 : 1; }, set: function (i) { cfg.sounds = (i === 0); } },
 
-      { type: 'section', label: 'Red' },
-      { label: 'Dirección IP', type: 'info', value: function () { return sysInfo.ip || '—'; } },
-      { label: 'Cambiar de red', type: 'act', act: function () { valen.open('wifi'); } },
+      { type: 'section', label: t('red') },
+      { label: t('fondoMovil'), type: 'info',
+        value: function () { return sysInfo.ip ? ('http://' + sysInfo.ip + ':8756') : '—'; } },
+      { label: t('cambiarRed'), type: 'act', act: function () { valen.open('wifi'); } },
 
-      { type: 'section', label: 'Sistema' },
-      { label: 'Memoria libre', type: 'info',
-        value: function () { return fmtMB(sysInfo.ramFree) + ' de ' + fmtMB(sysInfo.ramTotal); } },
-      { label: 'Almacenamiento', type: 'info',
-        value: function () { return fmtMB(sysInfo.diskFree) + ' de ' + fmtMB(sysInfo.diskTotal); } },
-      { label: 'Modelo', type: 'info', value: function () { return sysInfo.model || '—'; } },
-      { label: 'Android', type: 'info', value: function () { return sysInfo.android || '—'; } },
+      { type: 'section', label: t('sistema') },
+      { label: t('memoria'), type: 'info',
+        value: function () { return fmtMB(sysInfo.ramFree) + ' / ' + fmtMB(sysInfo.ramTotal); } },
+      { label: t('almacenamiento'), type: 'info',
+        value: function () { return fmtMB(sysInfo.diskFree) + ' / ' + fmtMB(sysInfo.diskTotal); } },
+      { label: t('modelo'), type: 'info', value: function () { return sysInfo.model || '—'; } },
+      { label: t('android'), type: 'info', value: function () { return sysInfo.android || '—'; } },
 
-      { type: 'section', label: 'Aplicaciones' },
-      { label: 'Apps instaladas', type: 'info',
+      { type: 'section', label: t('apps') },
+      { label: t('appsInstaladas'), type: 'info',
         value: function () { return String(Object.keys(appIndex).length); } },
-      { label: 'Gestionar aplicaciones', type: 'act', act: function () { valen.open('apps'); } },
+      { label: t('gestionar'), type: 'act', act: function () { valen.open('apps'); } },
 
-      { type: 'section', label: 'Avanzado' },
-      { label: 'Ajustes del sistema', type: 'act', act: function () { valen.open('settings'); } },
-      { label: 'Pantalla y sonido', type: 'act', act: function () { valen.open('display'); } },
-      { label: 'Acerca del dispositivo', type: 'act', act: function () { valen.open('about'); } }
+      { type: 'section', label: t('avanzado') },
+      { label: t('ajustesSistema'), type: 'act', act: function () { valen.open('settings'); } },
+      { label: t('pantallaSonido'), type: 'act', act: function () { valen.open('display'); } },
+      { label: t('acerca'), type: 'act', act: function () { valen.open('about'); } }
     ];
 
     rowsEl.innerHTML = '';
@@ -446,10 +470,10 @@ window.onerror = function (m, s, l) { try { console.log('JSERR ' + m + ' @' + l)
 
     spec.forEach(function (item) {
       if (item.type === 'section') {
-        var h = document.createElement('div');
-        h.className = 'sect';
-        h.textContent = item.label;
-        rowsEl.appendChild(h);
+        var hd = document.createElement('div');
+        hd.className = 'sect';
+        hd.textContent = item.label;
+        rowsEl.appendChild(hd);
         return;
       }
       var idx = rowDefs.length;
@@ -478,8 +502,7 @@ window.onerror = function (m, s, l) { try { console.log('JSERR ' + m + ' @' + l)
       if (def.type === 'vol') {
         var cur = 0, max = 15;
         try { cur = valen.volGet(); max = valen.volMax() || 15; } catch (e) {}
-        var pct = Math.round((cur / max) * 100);
-        def.valEl.innerHTML = '<span class="vbar"><i style="width:' + pct + '%"></i></span>' +
+        def.valEl.innerHTML = '<span class="vbar"><i style="width:' + Math.round((cur / max) * 100) + '%"></i></span>' +
           '<span class="vnum">' + cur + '</span>';
       } else if (def.type === 'info') {
         def.valEl.innerHTML = '<span class="cur">' + (def.value ? def.value() : '') + '</span>';
@@ -497,9 +520,14 @@ window.onerror = function (m, s, l) { try { console.log('JSERR ' + m + ' @' + l)
     if (!def) return;
     if (def.type === 'seg') {
       def.set((def.get() + 1) % def.values.length);
-      saveCfg(); applyCfg(); refreshRows();
-    } else if (def.type === 'act' && def.act) def.act();
-    else if (def.type === 'vol') tickSound();
+      saveCfg(); applyCfg();
+      if (i === 0) { openSettings(); return; }
+      refreshRows();
+    } else if (def.type === 'act' && def.act) {
+      def.act();
+    } else if (def.type === 'vol') {
+      tickSound();
+    }
   }
 
   function changeRow(i, dir) {
@@ -507,13 +535,13 @@ window.onerror = function (m, s, l) { try { console.log('JSERR ' + m + ' @' + l)
     if (!def) return;
     if (def.type === 'vol') {
       try { valen.volSet(valen.volGet() + dir); } catch (e) {}
-      tickSound();
-      refreshRows();
-      return;
+      tickSound(); refreshRows(); return;
     }
     if (def.type !== 'seg') return;
     def.set((def.get() + dir + def.values.length) % def.values.length);
-    saveCfg(); applyCfg(); refreshRows();
+    saveCfg(); applyCfg();
+    if (i === 0) { openSettings(); return; }
+    refreshRows();
   }
 
   function setRowFocus(i) {
@@ -529,7 +557,7 @@ window.onerror = function (m, s, l) { try { console.log('JSERR ' + m + ' @' + l)
     overlay.classList.remove('on');
     valen.setOverlay(false);
     mode = 'home';
-    moveMode = false;
+    moveStage = null;
     overlayItems.forEach(function (o) { o.el.classList.remove('focused'); });
     rowDefs.forEach(function (d) { if (d.el) d.el.classList.remove('focused'); });
     setFocus(fi);
@@ -537,8 +565,10 @@ window.onerror = function (m, s, l) { try { console.log('JSERR ' + m + ' @' + l)
   window.__closeOverlay = closeOverlay;
 
   function launch(app) {
-    if (app && app.cmp) valen.launchCmp(app.cmp);
-    else if (app && app.pkg) valen.launch(app.pkg);
+    try {
+      if (app && app.cmp) valen.launchCmp(app.cmp);
+      else if (app && app.pkg) valen.launch(app.pkg);
+    } catch (e) {}
     closeOverlay();
   }
 
@@ -551,12 +581,6 @@ window.onerror = function (m, s, l) { try { console.log('JSERR ' + m + ' @' + l)
     if (prev !== oi) tickSound();
   }
 
-  var moveStage = null;
-  var movePkg = null;
-  var moveDest = 0;
-  var ai = 0;
-  var curFolder = '';
-
   function navApps() { return overlayItems.filter(function (o) { return !o.isMove; }); }
 
   function focusApp(i) {
@@ -565,20 +589,21 @@ window.onerror = function (m, s, l) { try { console.log('JSERR ' + m + ' @' + l)
     overlayItems.forEach(function (o) { o.el.classList.remove('focused'); });
     ai = (i + a.length) % a.length;
     a[ai].el.classList.add('focused');
+    tickSound();
   }
 
   function enterMove() {
     moveStage = 'pick';
     focusApp(0);
-    ptitle.textContent = 'Mover app';
-    hint.textContent = '◀ ▶ elige app · OK sigue · ATRÁS cancela';
+    ptitle.textContent = t('mover');
+    hint.textContent = '◀ ▶ · OK · ' + t('vuelve');
   }
 
   function cancelMove() {
     moveStage = null;
-    ptitle.textContent = curFolder;
-    hint.textContent = 'OK abre · MOVER cambia de carpeta · ATRÁS vuelve';
-    openSound();
+    ptitle.textContent = catName(curFolder);
+    hint.textContent = 'OK · ' + t('mover') + ' · ' + t('vuelve');
+    if (overlayItems[0]) { overlayItems.forEach(function (o) { o.el.classList.remove('focused'); }); overlayItems[0].el.classList.add('focused'); oi = 0; }
   }
 
   function pickApp() {
@@ -587,8 +612,8 @@ window.onerror = function (m, s, l) { try { console.log('JSERR ' + m + ' @' + l)
     movePkg = a[ai].pkg;
     moveStage = 'dest';
     moveDest = 0;
-    ptitle.textContent = 'Mover a: ' + groups[moveDest];
-    hint.textContent = '▲ ▼ elige carpeta · OK mueve · ATRÁS cancela';
+    ptitle.textContent = '→ ' + catName(groups[moveDest] || '');
+    hint.textContent = '▲ ▼ · OK · ' + t('vuelve');
   }
 
   function confirmMove() {
@@ -611,7 +636,7 @@ window.onerror = function (m, s, l) { try { console.log('JSERR ' + m + ' @' + l)
     if (moveStage === 'dest') {
       if (k === 19 || k === 20) {
         moveDest = (moveDest + (k === 19 ? -1 : 1) + groups.length) % groups.length;
-        ptitle.textContent = 'Mover a: ' + groups[moveDest];
+        ptitle.textContent = '→ ' + catName(groups[moveDest] || '');
       } else if (k === 23 || k === 66) confirmMove();
       else if (k === 4 || k === 82) cancelMove();
       return;
@@ -640,19 +665,14 @@ window.onerror = function (m, s, l) { try { console.log('JSERR ' + m + ' @' + l)
     var n = focusables.length;
     if (k === 22) setFocus(fi + 1);
     else if (k === 21) setFocus(fi - 1);
-    else if (k === 19) setFocus(n - 1);   // up -> settings gear
-    else if (k === 20) setFocus(0);       // down -> first folder
+    else if (k === 19) setFocus(n - 1);
+    else if (k === 20) setFocus(0);
     else if (k === 23 || k === 66) {
       var el = focusables[fi];
       if (el === gearEl) openSettings();
       else if (el) el.click();
     }
   }
-
-  var volTimer = null;
-  var volhud = document.getElementById('volhud');
-  var volfill = document.getElementById('volfill');
-  var volnum = document.getElementById('volnum');
 
   function renderVol() {
     var cur = 0, max = 15;
@@ -661,19 +681,26 @@ window.onerror = function (m, s, l) { try { console.log('JSERR ' + m + ' @' + l)
     volnum.textContent = cur;
   }
 
-  window.__volHud = function () {
+  function showVolHud() {
     renderVol();
     volhud.classList.add('on');
     clearTimeout(volTimer);
     volTimer = setTimeout(function () { volhud.classList.remove('on'); }, 1500);
-  };
+  }
 
+  window.__volHud = showVolHud;
   window.__vol = function (dir) {
     try { valen.volSet(valen.volGet() + dir); } catch (e) {}
-    renderVol();
-    volhud.classList.add('on');
-    clearTimeout(volTimer);
-    volTimer = setTimeout(function () { volhud.classList.remove('on'); }, 1500);
+    showVolHud();
+  };
+
+  window.__setWallpaper = function (uri) {
+    try {
+      wall.style.backgroundImage = 'url(' + uri + ')';
+      cfg.wallpaper = true;
+      saveCfg();
+      applyCfg();
+    } catch (e) {}
   };
 
   window.__key = function (k) {
@@ -695,5 +722,6 @@ window.onerror = function (m, s, l) { try { console.log('JSERR ' + m + ' @' + l)
   buildFolders();
 })();
 </script>
+
 </body>
 </html>

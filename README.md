@@ -20,6 +20,14 @@ Nació de limpiar un **Xiaomi Mi TV Stick 4K (MiTV-AESP0, Android 9, 1 GB de RAM
 |---|---|
 | ![Carpetas](screenshots/folders.png) | ![Ajustes](screenshots/settings.png) |
 
+## Cambiar el fondo desde el móvil
+
+El launcher levanta un servidor web en el puerto **8756**. En Ajustes verás la URL exacta (`http://IP-DEL-STICK:8756`): ábrela desde el móvil en la misma Wi-Fi, elige una foto y se aplica al instante. Se guarda en el dispositivo y sobrevive a reinicios.
+
+## Idiomas
+
+Español, English, Italiano, Français, Deutsch y Português. Se cambia en **Ajustes → Idioma** y afecta a todo el panel, las pistas y los nombres de carpeta.
+
 ## Requisitos
 
 - TV o stick con **Android TV / Google TV** (probado en Android 9)
