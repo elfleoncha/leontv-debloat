@@ -237,16 +237,20 @@ window.onerror = function (m, s, l) { try { console.log('JSERR ' + m + ' @' + l)
     document.querySelector('.stage').className = 'stage pos-' + (cfg.clockPos || 'right');
     document.querySelector('.left').className = 'left al-' + (cfg.clockPos || 'right');
     document.getElementById('cards').className = 'cards pos-' + (cfg.appsPos || 'right');
+    lastDate = '';
     tick(true);
   }
 
   var lastClock = '', lastDate = '';
+  var LOCALES = { es: 'es-ES', en: 'en-GB', it: 'it-IT', fr: 'fr-FR', de: 'de-DE', pt: 'pt-PT' };
+
   function tick(force) {
     var d = new Date(), h = d.getHours(), mm = ('0' + d.getMinutes()).slice(-2), tc;
     if (cfg.h24) tc = ('0' + h).slice(-2) + ':' + mm;
     else { var h12 = h % 12; if (h12 === 0) h12 = 12; tc = h12 + ':' + mm; }
     if (tc !== lastClock || force) { lastClock = tc; document.getElementById('clock').textContent = tc; }
-    var ds = d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' }).replace(/,/g, '');
+    var loc = LOCALES[cfg.lang] || 'es-ES';
+    var ds = d.toLocaleDateString(loc, { weekday: 'long', day: 'numeric', month: 'long' }).replace(/,/g, '');
     ds = ds.charAt(0).toUpperCase() + ds.slice(1);
     if (ds !== lastDate || force) { lastDate = ds; document.getElementById('date').textContent = ds; }
   }
