@@ -640,8 +640,8 @@ window.onerror = function (m, s, l) { try { console.log('JSERR ' + m + ' @' + l)
     var n = focusables.length;
     if (k === 22) setFocus(fi + 1);
     else if (k === 21) setFocus(fi - 1);
-    else if (k === 20) setFocus(n - 1);
-    else if (k === 19) setFocus(0);
+    else if (k === 19) setFocus(n - 1);   // up -> settings gear
+    else if (k === 20) setFocus(0);       // down -> first folder
     else if (k === 23 || k === 66) {
       var el = focusables[fi];
       if (el === gearEl) openSettings();
