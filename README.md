@@ -1,3 +1,10 @@
+<p align="center">
+<a href="https://github.com/elfleoncha/leontv-debloat/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/elfleoncha/leontv-debloat?color=7c9cff"></a>
+<a href="LICENSE"><img alt="License" src="https://img.shields.io/github/license/elfleoncha/leontv-debloat?color=7c9cff"></a>
+<img alt="APK size" src="https://img.shields.io/badge/APK-170%20KB-7c9cff">
+<img alt="Android TV" src="https://img.shields.io/badge/Android%20TV-9%2B-7c9cff">
+</p>
+
 # LeonTV Debloat
 
 Launcher **ultra minimalista** para Android TV, escrito en HTML/CSS/JS sobre un WebView nativo de ~160 KB. Sustituye el home lleno de anuncios por un reloj, tus apps en carpetas y un único botón de ajustes.
