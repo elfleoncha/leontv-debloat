@@ -29,13 +29,13 @@ Nació de limpiar un **Xiaomi Mi TV Stick 4K (MiTV-AESP0, Android 9, 1 GB de RAM
 ## Instalación en un comando
 
 ```bash
-TV_IP=192.168.1.37 bash <(curl -fsSL https://raw.githubusercontent.com/<usuario>/leontv-debloat/main/install.sh)
+TV_IP=192.168.1.37 bash <(curl -fsSL https://raw.githubusercontent.com/elfleoncha/leontv-debloat/main/install.sh)
 ```
 
 O en local:
 
 ```bash
-git clone https://github.com/<usuario>/leontv-debloat
+git clone https://github.com/elfleoncha/leontv-debloat
 cd leontv-debloat
 TV_IP=192.168.1.37 ./install.sh
 ```
