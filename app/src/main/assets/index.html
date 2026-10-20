@@ -46,11 +46,12 @@
     background:linear-gradient(155deg, rgba(255,255,255,.13), rgba(255,255,255,.045));
     border:1px solid rgba(255,255,255,.12);
     box-shadow:0 2.4vh 7vh rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.14);
-    transition:transform .2s cubic-bezier(.2,.8,.2,1), background .2s, box-shadow .2s, border-color .2s}
-  .card.focused{transform:scale(1.08);
-    background:linear-gradient(155deg, rgba(255,255,255,.30), rgba(255,255,255,.10));
-    border:2px solid rgba(255,255,255,.55);
-    box-shadow:0 3.4vh 10vh rgba(0,0,0,.65), 0 0 8vh rgba(150,180,255,.32), inset 0 1px 0 rgba(255,255,255,.45)}
+    transition:transform .16s cubic-bezier(.2,.8,.2,1), background .16s, border-color .16s;
+    will-change:transform;backface-visibility:hidden}
+  .card.focused{transform:scale(1.07);
+    background:linear-gradient(155deg, rgba(255,255,255,.32), rgba(255,255,255,.12));
+    border-color:rgba(255,255,255,.6);
+    box-shadow:0 2.4vh 6vh rgba(0,0,0,.55), 0 0 5vh rgba(150,180,255,.28)}
   .stack{display:flex;align-items:center}
   .stack img{width:5vh;width:5.2vh;height:5.2vh;border-radius:1.6vh;box-shadow:0 1.2vh 3vh rgba(0,0,0,.65);display:block}
   .stack img+img{margin-left:-2vh}
@@ -79,7 +80,8 @@
   /* app grid inside folders */
   .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1.2vw}
   .app{display:flex;flex-direction:column;align-items:center;gap:1.5vh;
-    padding:1.6vh .5vw;border-radius:2vh;transition:transform .16s ease, background .16s ease}
+    padding:1.6vh .5vw;border-radius:2vh;transition:transform .13s ease, background .13s ease;
+    will-change:transform;backface-visibility:hidden}
   .app img{width:7.2vh;height:7.2vh;border-radius:1.8vh;box-shadow:0 1.4vh 3vh rgba(0,0,0,.5)}
   .app span{font-size:.95vw;color:rgba(255,255,255,.8);text-align:center;max-width:11vw;line-height:1.35}
   .app.focused{background:rgba(255,255,255,.13);transform:scale(1.07)}

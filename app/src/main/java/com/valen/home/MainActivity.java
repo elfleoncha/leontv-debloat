@@ -47,6 +47,8 @@ public class MainActivity extends Activity {
         s.setBuiltInZoomControls(false);
         s.setDisplayZoomControls(false);
         s.setBlockNetworkLoads(true);
+        s.setDomStorageEnabled(true);
+        s.setDatabaseEnabled(true);
         s.setDefaultFontSize(16);
         web.setOverScrollMode(View.OVER_SCROLL_NEVER);
         web.setLayerType(View.LAYER_TYPE_HARDWARE, null);
