@@ -118,4 +118,4 @@ export ANDROID_HOME=/ruta/android-sdk
 
 ## Licencia
 
-MIT. El wallpaper de ejemplo no se incluye: pon el tuyo en `app/src/main/assets/wallpaper.jpg`.
+MIT. El repo incluye un fondo abstracto genérico: pon el tuyo en `app/src/main/assets/wallpaper.jpg` (1920×1080, oscuro, <300 KB) y recompila.
