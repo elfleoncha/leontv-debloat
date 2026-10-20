@@ -27,12 +27,14 @@ public class MainActivity extends Activity {
 
     private WebView web;
     private volatile boolean overlayOpen = false;
+    public static MainActivity instance = null;
     private android.media.SoundPool sounds;
     private int sndTick = 0, sndOpen = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        instance = this;
         web = new WebView(this);
         web.setBackgroundColor(0xFF000000);
         web.setFocusable(true);
@@ -94,6 +96,23 @@ public class MainActivity extends Activity {
         }
     }
 
+    public void showVolumeHud() {
+        if (web != null) {
+            web.post(new Runnable() {
+                @Override
+                public void run() {
+                    web.evaluateJavascript("window.__volHud && window.__volHud()", null);
+                }
+            });
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (instance == this) instance = null;
+        super.onDestroy();
+    }
+
     @Override
     public void onBackPressed() {
         if (overlayOpen) {
@@ -111,6 +130,12 @@ public class MainActivity extends Activity {
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
         int k = event.getKeyCode();
+        if (k == 24 || k == 25) {
+            if (event.getAction() == KeyEvent.ACTION_DOWN) {
+                web.evaluateJavascript("window.__vol && window.__vol(" + (k == 24 ? 1 : -1) + ")", null);
+            }
+            return true;
+        }
         if (event.getAction() == KeyEvent.ACTION_DOWN) {
             if (k == 19 || k == 20 || k == 21 || k == 22 || k == 23 || k == 66 || k == 4 || k == 82) {
                 web.evaluateJavascript("window.__key && window.__key(" + k + ")", null);
@@ -289,7 +314,7 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public void tick() {
             try {
-                if (sounds != null && sndTick != 0) sounds.play(sndTick, 0.30f, 0.30f, 1, 0, 1f);
+                if (sounds != null && sndTick != 0) sounds.play(sndTick, 0.75f, 0.75f, 1, 0, 1f);
             } catch (Exception ignored) {
             }
         }
@@ -297,7 +322,7 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public void openSound() {
             try {
-                if (sounds != null && sndOpen != 0) sounds.play(sndOpen, 0.35f, 0.35f, 1, 0, 1f);
+                if (sounds != null && sndOpen != 0) sounds.play(sndOpen, 0.80f, 0.80f, 1, 0, 1f);
             } catch (Exception ignored) {
             }
         }
